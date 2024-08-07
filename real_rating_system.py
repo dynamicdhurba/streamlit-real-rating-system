@@ -32,6 +32,20 @@ if 'current_question_index' not in st.session_state:
     st.session_state.current_question_index = 0
 if 'responses' not in st.session_state:
     st.session_state.responses = {}
+if 'form_submitted' not in st.session_state:
+    st.session_state.form_submitted = False
+if 'child_first_name' not in st.session_state:
+    st.session_state.child_first_name = ""
+if 'child_last_name' not in st.session_state:
+    st.session_state.child_last_name = ""
+if 'person_completing_form' not in st.session_state:
+    st.session_state.person_completing_form = ""
+if 'relationship_to_child' not in st.session_state:
+    st.session_state.relationship_to_child = ""
+if 'evaluating_therapist' not in st.session_state:
+    st.session_state.evaluating_therapist = ""
+if 'child_sex' not in st.session_state:
+    st.session_state.child_sex = ""
 
 # Function to load CSV with specified encoding and handle errors
 def load_csv_with_encoding(file_path):
@@ -69,59 +83,79 @@ st.markdown(
 # Streamlit app
 st.title("The REAL Rating Form")
 
-if not df.empty:
-    current_index = st.session_state.current_question_index
-    total_questions = len(df)
+# User details form
+if not st.session_state.form_submitted:
+    with st.form(key='user_details_form'):
+        st.write("Please fill out the following details before starting the survey:")
+        
+        st.session_state.child_first_name = st.text_input("Child's First Name")
+        st.session_state.child_last_name = st.text_input("Child's Last Name")
+        st.session_state.person_completing_form = st.text_input("Person Completing the Form")
+        st.session_state.relationship_to_child = st.radio("Relationship to Child", options=["Parent", "Caregiver"], index=None)
+        st.session_state.evaluating_therapist = st.text_input("Evaluating Therapist")
+        st.session_state.child_sex = st.radio("Child's Sex", options=["Male", "Female"], index=None)
+        
+        form_submit_button = st.form_submit_button("Start Survey")
 
-    if current_index < total_questions:
-        question_no = df.iloc[current_index]["no"]
-        question_prompt = df.iloc[current_index]["question_prompt"]
-
-        with st.form(key='question_form'):
-            st.write(f"Domain: {domain_name}")
-            st.write(f"Category: {category_name}")
-            st.write(f"Question {current_index + 1} of {total_questions}")
-            st.write(f"{question_no}. {question_prompt}")
-
-            response = st.radio(
-                "",
-                options=["0: Unable", "1: Seldom (25%)", "2: Occasionally (50%)", "3: Frequently (75%)"],
-                key=f"q{domain_name}_{category_name}_{question_no}",
-            )
-
-            submit_button = st.form_submit_button("Next")
-
-        if submit_button:
-            st.session_state.responses[(domain_name, category_name, question_no)] = response
-            st.session_state.current_question_index += 1
-
+        if form_submit_button:
+            st.session_state.form_submitted = True
             # Add JavaScript to reload the page
             st.write('<script>window.location.reload()</script>', unsafe_allow_html=True)
 
-    else:
-        st.write(f"You have completed the {category_name} category!")
-
-        # Move to the next category if available
-        if current_category_index + 1 < len(categories):
-            if st.button("Next Category"):
-                st.session_state.current_category_index += 1
-                st.session_state.current_question_index = 0
-                st.write('<script>window.location.reload()</script>', unsafe_allow_html=True)
-        else:
-            st.write("You have completed the entire survey!")
-
-            # Display the responses
-            st.write("Responses:")
-            for (domain, category, question_no), response in st.session_state.responses.items():
-                st.write(f"Domain: {domain}, Category: {category}, Question {question_no}: {response}")
-
-            # Optionally, save the responses to a CSV file
-            if st.button("Save Responses"):
-                response_df = pd.DataFrame([
-                    {"Domain": domain, "Category": category, "Question No": question_no, "Response": response}
-                    for (domain, category, question_no), response in st.session_state.responses.items()
-                ])
-                response_df.to_csv("responses.csv", index=False)
-                st.write("Responses saved to responses.csv")
 else:
-    st.error("The selected CSV file is empty or could not be loaded. Please check the file and try again.")
+    if not df.empty:
+        current_index = st.session_state.current_question_index
+        total_questions = len(df)
+
+        if current_index < total_questions:
+            question_no = df.iloc[current_index]["no"]
+            question_prompt = df.iloc[current_index]["question_prompt"]
+
+            with st.form(key='question_form'):
+                st.write(f"Domain: {domain_name}")
+                st.write(f"Category: {category_name}")
+                st.write(f"Question {current_index + 1} of {total_questions}")
+                st.write(f"{question_no}. {question_prompt}")
+
+                response = st.radio(
+                    "",
+                    options=["0: Unable", "1: Seldom (25%)", "2: Occasionally (50%)", "3: Frequently (75%)"],
+                    key=f"q{domain_name}_{category_name}_{question_no}",
+                )
+
+                submit_button = st.form_submit_button("Next")
+
+            if submit_button:
+                st.session_state.responses[(domain_name, category_name, question_no)] = response
+                st.session_state.current_question_index += 1
+
+                # Add JavaScript to reload the page
+                st.write('<script>window.location.reload()</script>', unsafe_allow_html=True)
+
+        else:
+            st.write(f"You have completed the {category_name} category!")
+
+            # Move to the next category if available
+            if current_category_index + 1 < len(categories):
+                if st.button("Next Category"):
+                    st.session_state.current_category_index += 1
+                    st.session_state.current_question_index = 0
+                    st.write('<script>window.location.reload()</script>', unsafe_allow_html=True)
+            else:
+                st.write("You have completed the entire survey!")
+
+                # Display the responses
+                st.write("Responses:")
+                for (domain, category, question_no), response in st.session_state.responses.items():
+                    st.write(f"Domain: {domain}, Category: {category}, Question {question_no}: {response}")
+
+                # Optionally, save the responses to a CSV file
+                if st.button("Save Responses"):
+                    response_df = pd.DataFrame([
+                        {"Domain": domain, "Category": category, "Question No": question_no, "Response": response}
+                        for (domain, category, question_no), response in st.session_state.responses.items()
+                    ])
+                    response_df.to_csv("responses.csv", index=False)
+                    st.write("Responses saved to responses.csv")
+    else:
+        st.error("The selected CSV file is empty or could not be loaded. Please check the file and try again.")
