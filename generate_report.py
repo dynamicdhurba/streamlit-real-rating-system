@@ -1,7 +1,6 @@
-# generate_report.py
-
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 def calculate_score(response):
     if "Unable" in response:
@@ -13,11 +12,11 @@ def calculate_score(response):
     elif "Frequently (75%)" in response:
         return 3
 
-def generate_report(responses):
+def generate_report(responses, user_details):
     # Convert the session state responses to a DataFrame
     response_df = pd.DataFrame([
-        {"Category": category, "Question No": question_no, "Response": response}
-        for (category, question_no), response in responses.items()
+        {"Domain": domain, "Category": category, "Question No": question_no, "Response": response}
+        for (domain, category, question_no), response in responses.items()
     ])
 
     # Apply the score calculation function to the responses
@@ -47,19 +46,56 @@ def generate_report(responses):
     # Calculate the raw score percentage
     category_scores['Raw Score'] = category_scores['Score'].astype(str) + '/' + category_scores['Total Possible Score'].astype(str)
 
-    # Display the report table using Streamlit
-    st.title("Activities of Daily Living (ADL) and Instrumental Activities of Daily Living (IADL) Report")
-
-    # Define the categories for each domain
+    # Calculate raw ADL and IADL scores
     adl_categories = ["Dressing", "Hygiene and Grooming", "Feeding", "Toileting", "Other Functional Mobility"]
     iadl_categories = ["Housework/Chores", "Managing Money and Shopping", "Meal Preparation", "Personal Safety", "Travelling", "School-Related Skills"]
+
+    adl_score = category_scores[category_scores['Category'].isin(adl_categories)]['Score'].sum()
+    iadl_score = category_scores[category_scores['Category'].isin(iadl_categories)]['Score'].sum()
+
+    # Gender-specific pronoun
+    pronoun = 'he' if user_details['child_sex'] == 'Male' else 'she'
+    pronoun_possessive = 'his' if user_details['child_sex'] == 'Male' else 'her'
+
+    # Create the summary text
+    summary_text = (
+        f"{user_details['child_first_name']}'s parents, {user_details['person_completing_form']}, would like {pronoun} to become more independent in self-care and home and community skills. "
+        f"{pronoun_possessive.capitalize()} raw ADL score was {adl_score}. "
+        "Her standard score was less than 81.7 (lowest available score), and her percentile rank was less than 1%, which indicates a delay in self-care abilities compared to her peers. "
+        f"{pronoun_possessive.capitalize()} raw IADL score was {iadl_score}. "
+        "Her standard score was less than 84.8 (the lowest available score), and her percentile was less than 1%, which again indicates a delay in in-home and community skills."
+    )
+
+    # Display the report table using Streamlit
+    st.title("Activities of Daily Living (ADL) and Instrumental Activities of Daily Living (IADL) Report")
 
     # Display ADL Self-Care Domain
     st.subheader("Activities of Daily Living (ADL) Self-Care Domain")
     adl_scores = category_scores[category_scores['Category'].isin(adl_categories)]
-    st.table(adl_scores[['Category', 'Raw Score']])
+    st.table(adl_scores[['Category', 'Score', 'Raw Score']])
 
     # Display IADL Home and Community Domain
     st.subheader("Instrumental Activities of Daily Living (IADL) Home and Community Domain")
     iadl_scores = category_scores[category_scores['Category'].isin(iadl_categories)]
-    st.table(iadl_scores[['Category', 'Raw Score']])
+    st.table(iadl_scores[['Category', 'Score', 'Raw Score']])
+
+    # Display the REAL Interpretation summary
+    st.subheader("REAL Interpretation:")
+    st.write(summary_text)
+    st.write("Regards,")
+    st.write(user_details['evaluating_therapist'])
+    st.write("Occupational Therapist")
+
+    # Serialize response_df and category_scores to JSON
+    response_json = response_df.to_json(orient='records')
+    category_scores_json = category_scores.to_json(orient='records')
+    user_details_json = str(user_details)
+
+    # Log data to the browser console
+    components.html(f"""
+        <script>
+            console.log('Response DataFrame:', {response_json});
+            console.log('Category Scores:', {category_scores_json});
+            console.log('User Details:', {user_details_json});
+        </script>
+    """, height=0)
