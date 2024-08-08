@@ -54,7 +54,7 @@ def generate_report(responses, user_details):
     iadl_score = category_scores[category_scores['Category'].isin(iadl_categories)]['Score'].sum()
 
     # Gender-specific pronoun
-    pronoun = 'he' if user_details['child_sex'] == 'Male' else 'she'
+    pronoun = 'him' if user_details['child_sex'] == 'Male' else 'her'
     pronoun_possessive = 'his' if user_details['child_sex'] == 'Male' else 'her'
 
     # Create the summary text
@@ -66,6 +66,11 @@ def generate_report(responses, user_details):
         "Her standard score was less than 84.8 (the lowest available score), and her percentile was less than 1%, which again indicates a delay in in-home and community skills."
     )
 
+    st.write(f"The REAL (The Roll Evaluation of Activities of Life) was completed by {user_details['person_completing_form']} ({user_details['relationship_to_child']}).")
+
+    
+    st.write("The REAL (The Roll Evaluation of Activities of Life) is a useful screening instrument to help assess children's self-care abilities at home, at school, and in the community. This standardised rating scale provides information on the activities of daily living (ADLs) and instrumental activities of daily living (IADLs).")
+    
     # Display the report table using Streamlit
     st.title("Activities of Daily Living (ADL) and Instrumental Activities of Daily Living (IADL) Report")
 
@@ -87,7 +92,7 @@ def generate_report(responses, user_details):
     st.write("Occupational Therapist")
 
     # Serialize response_df and category_scores to JSON
-    response_json = response_df.to_json(orient='records')
+    response_json = response_df.to_json(orient='records') 
     category_scores_json = category_scores.to_json(orient='records')
     user_details_json = str(user_details)
 
