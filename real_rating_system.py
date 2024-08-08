@@ -72,7 +72,7 @@ current_category_index = st.session_state.current_category_index
 domain_name, category_name, csv_file = categories[current_category_index]
 df = load_csv_with_encoding(csv_file)
 
-# Apply background color and text color
+# Apply custom CSS
 st.markdown(
     """
     <style>
@@ -84,6 +84,13 @@ st.markdown(
     }
     .stButton>button {
         color: white !important;
+    }
+    input[type="text"], .stRadio>div>div {
+        border: 1px solid gray !important;
+        padding: 5px !important;
+    }
+    .stTextInput>div>label, .stRadio>div>label {
+        font-weight: bold;
     }
     </style>
     """,
@@ -98,11 +105,11 @@ if not st.session_state.form_submitted:
     with st.form(key='user_details_form'):
         st.write("Please fill out the following details before starting the survey:")
         
-        st.session_state.child_first_name = st.text_input("Child's First Name")
-        st.session_state.child_last_name = st.text_input("Child's Last Name")
-        st.session_state.person_completing_form = st.text_input("Person Completing the Form")
+        st.session_state.child_first_name = st.text_input("Child's First Name", placeholder="Please enter data here")
+        st.session_state.child_last_name = st.text_input("Child's Last Name", placeholder="Please enter data here")
+        st.session_state.person_completing_form = st.text_input("Person Completing the Form", placeholder="Please enter data here")
         st.session_state.relationship_to_child = st.radio("Relationship to Child", options=["Parent", "Caregiver"], index=None)
-        st.session_state.evaluating_therapist = st.text_input("Evaluating Therapist")
+        st.session_state.evaluating_therapist = st.text_input("Evaluating Therapist", placeholder="Please enter data here")
         st.session_state.child_sex = st.radio("Child's Sex", options=["Male", "Female"], index=None)
         
         form_submit_button = st.form_submit_button("Start Survey")
@@ -171,11 +178,6 @@ else:
                 console.log({user_details});
             </script>
         """, height=0)
-
-    # Display the responses
-    # st.write("Responses:")
-    # for (domain, category, question_no), response in st.session_state.responses.items():
-    #     st.write(f"Domain: {domain}, Category: {category}, Question {question_no}: {response}")
 
 # Save responses in real-time without requiring a button click
 save_responses()
