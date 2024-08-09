@@ -67,6 +67,19 @@ def save_responses():
     ])
     response_df.to_csv("responses.csv", index=False)
 
+# Function to reset the form
+def reset_form():
+    st.session_state.current_category_index = 0
+    st.session_state.current_question_index = 0
+    st.session_state.responses = {}
+    st.session_state.form_submitted = False
+    st.session_state.child_first_name = ""
+    st.session_state.child_last_name = ""
+    st.session_state.person_completing_form = ""
+    st.session_state.relationship_to_child = ""
+    st.session_state.evaluating_therapist = ""
+    st.session_state.child_sex = ""
+
 # Get the current category and load the corresponding CSV file
 current_category_index = st.session_state.current_category_index
 domain_name, category_name, csv_file = categories[current_category_index]
@@ -98,7 +111,12 @@ st.markdown(
 )
 
 # Streamlit app
-st.title("The REAL Rating Form")
+st.markdown(f"<p style='font-size: 20px; font-weight: 600;'>The REAL Rating Form</p>", unsafe_allow_html=True)
+
+# Home button to reset the form
+if st.button("Home"):
+    reset_form()
+    st.rerun()
 
 # User details form
 if not st.session_state.form_submitted:
@@ -116,8 +134,7 @@ if not st.session_state.form_submitted:
 
         if form_submit_button:
             st.session_state.form_submitted = True
-            # Add JavaScript to reload the page
-            st.write('<script>window.location.reload()</script>', unsafe_allow_html=True)
+            st.rerun()  # Reload the page without JavaScript
 
 else:
     if not df.empty:
@@ -128,26 +145,33 @@ else:
             question_no = df.iloc[current_index]["no"]
             question_prompt = df.iloc[current_index]["question_prompt"]
 
-            with st.form(key='question_form'):
+            # Ensure the key is unique by including question number and category in the key
+            question_key = f"q_{domain_name}_{category_name}_{question_no}"
+
+            with st.form(key=f'question_form_{question_key}'):
                 st.write(f"Domain: {domain_name}")
                 st.write(f"Category: {category_name}")
                 st.write(f"Question {current_index + 1} of {total_questions}")
                 st.write(f"{question_no}. {question_prompt}")
 
+                # Retrieve the stored response or default to the first option
                 response = st.radio(
                     "",
-                    options=["0: Unable", "1: Seldom (25%)", "2: Occasionally (50%)", "3: Frequently (75%)"],
-                    key=f"q{domain_name}_{category_name}_{question_no}",
+                    options=["Unable", "Seldom (25%)", "Occasionally (50%)", "Frequently (75%)"],
+                    index=["Unable", "Seldom (25%)", "Occasionally (50%)", "Frequently (75%)"].index(
+                        st.session_state.responses.get((domain_name, category_name, question_no), "Frequently (75%)")
+                    ),
+                    key=question_key
                 )
 
                 submit_button = st.form_submit_button("Next")
 
             if submit_button:
+                # Store the selected response in the session state
                 st.session_state.responses[(domain_name, category_name, question_no)] = response
                 st.session_state.current_question_index += 1
                 save_responses()  # Save responses in real-time
-                # Add JavaScript to reload the page
-                st.write('<script>window.location.reload()</script>', unsafe_allow_html=True)
+                st.rerun()  # Reload the page to move to the next question
 
         else:
             st.write(f"You have completed the {category_name} category!")
@@ -157,7 +181,7 @@ else:
                 if st.button("Next Category"):
                     st.session_state.current_category_index += 1
                     st.session_state.current_question_index = 0
-                    st.write('<script>window.location.reload()</script>', unsafe_allow_html=True)
+                    st.rerun()  # Reload the page to start the next category
             else:
                 st.write("You have completed the entire survey!")
 
